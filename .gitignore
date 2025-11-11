@@ -11,6 +11,8 @@ __pycache__/
 commit.txt
 requirements.txt
 tasks.txt
+*.pt
+*:Zone.Identifier
 
 # Distribution / packaging
 .Python
