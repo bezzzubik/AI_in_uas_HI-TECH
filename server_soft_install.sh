@@ -35,7 +35,7 @@ sudo apt install ros-noetic-cv-bridge ros-noetic-image-transport ros-noetic-visi
 # Python‑библиотеки для работы с видео
 
 sudo apt install python3-pip -y
-pip3 install flask opencv-python opencv-contrib-python numpy
+pip3 install flask>=2.3.0 opencv-python>=4.8.0 opencv-contrib-python ultralytics>=8.0.0 numpy>=1.24.0 torch>=2.0.0 torchvision>=0.15.0
 
 
 # Проверка списка пакетов
