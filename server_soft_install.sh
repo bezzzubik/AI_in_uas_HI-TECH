@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # предонозначени для debian-based uix систем
-
+set -e
 # обновляем информацию о репозиториях
 sudo apt update
 
@@ -45,3 +45,5 @@ echo "ROS nodes list"
 roscore
 echo "________________"
 rostopiclist
+
+set +e
