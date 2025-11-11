@@ -6,6 +6,14 @@ __pycache__/
 # C extensions
 *.so
 
+# Sourse
+*.mp4
+commit.txt
+requirements.txt
+tasks.txt
+*.pt
+*:Zone.Identifier
+
 # Distribution / packaging
 .Python
 build/
