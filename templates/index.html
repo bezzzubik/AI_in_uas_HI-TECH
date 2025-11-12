@@ -29,7 +29,7 @@
             <div class="info-panel">
                 <div class="info-card">
                     <h3>Модель</h3>
-                    <p>YOLOv8 Nano</p>
+                    <p>{{ model_name }}</p>
                 </div>
                 <div class="info-card">
                     <h3>Детекция</h3>
@@ -39,6 +39,25 @@
                     <h3>Источник</h3>
                     <p id="source-info">{{ source_info }}</p>
                 </div>
+                <div class="info-card" id="counts-card">
+                    <h3>Объекты в кадре</h3>
+                    <div id="counts-content">
+                        {% if counts %}
+                        <ul class="counts-list" id="counts-list">
+                            {% for name, value in counts.items() %}
+                            <li><span class="count-name">{{ name }}</span><span class="count-value">{{ value }}</span></li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p id="counts-empty">Нет объектов</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="notifications-panel" id="notifications-panel" style="display: none;">
+                <h3>⚠️ Уведомления о потерянных объектах</h3>
+                <div id="notifications-content"></div>
             </div>
         </main>
 
@@ -52,6 +71,7 @@
         let noDataTimeout;
         let frameCheckInterval;
         const NO_DATA_DELAY = 2000; // 2 секунды
+        const COUNTS_REFRESH_MS = 1000; // обновление счетчиков
 
         function updateStatus(connected) {
             const statusDot = document.getElementById('status-dot');
@@ -107,6 +127,86 @@
             }
         }, 1000);
 
+        async function fetchCounts() {
+            try {
+                const response = await fetch('/counts');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!data || !data.counts) {
+                    renderCounts({});
+                    return;
+                }
+                renderCounts(data.counts);
+            } catch (err) {
+                console.warn('Не удалось получить счетчики объектов:', err);
+            }
+        }
+
+        function renderCounts(counts) {
+            const container = document.getElementById('counts-content');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const entries = Object.entries(counts);
+            if (!entries.length) {
+                const empty = document.createElement('p');
+                empty.id = 'counts-empty';
+                empty.textContent = 'Нет объектов';
+                container.appendChild(empty);
+                return;
+            }
+
+            const list = document.createElement('ul');
+            list.className = 'counts-list';
+            list.id = 'counts-list';
+
+            entries.forEach(([name, value]) => {
+                const item = document.createElement('li');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'count-name';
+                nameSpan.textContent = name;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'count-value';
+                valueSpan.textContent = value;
+
+                item.appendChild(nameSpan);
+                item.appendChild(valueSpan);
+                list.appendChild(item);
+            });
+
+            container.appendChild(list);
+        }
+
+        // Функция для получения уведомлений о потерянных объектах
+        function fetchLostNotifications() {
+            fetch('/lost_notifications')
+                .then(response => response.json())
+                .then(data => {
+                    const panel = document.getElementById('notifications-panel');
+                    const content = document.getElementById('notifications-content');
+                    
+                    if (data && data.length > 0) {
+                        panel.style.display = 'block';
+                        content.innerHTML = '';
+                        
+                        // Показываем последние 10 уведомлений
+                        const recent = data.slice(-10).reverse();
+                        recent.forEach(notif => {
+                            const div = document.createElement('div');
+                            div.className = 'notification-item';
+                            div.textContent = notif.message || `Объект с ID ${notif.track_id} потерян`;
+                            content.appendChild(div);
+                        });
+                    } else {
+                        panel.style.display = 'none';
+                    }
+                })
+                .catch(err => console.error('Ошибка получения уведомлений:', err));
+        }
+
         // Инициализация при загрузке страницы
         window.onload = function() {
             // Начальная проверка через небольшую задержку
@@ -114,6 +214,14 @@
             
             // Периодическая проверка каждые 2 секунды
             setInterval(checkVideoStatus, 2000);
+
+            // Запускаем периодическое обновление счетчиков
+            fetchCounts();
+            setInterval(fetchCounts, COUNTS_REFRESH_MS);
+            
+            // Запускаем периодическое обновление уведомлений
+            fetchLostNotifications();
+            setInterval(fetchLostNotifications, 2000);  // Каждые 2 секунды
         };
     </script>
 </body>
