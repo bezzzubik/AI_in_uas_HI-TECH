@@ -13,7 +13,6 @@ requirements.txt
 tasks.txt
 *.pt
 *:Zone.Identifier
-*.txt
 
 # Distribution / packaging
 .Python
