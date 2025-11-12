@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Детекция объектов в реальном времени</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}">
 </head>
 <body>
     <div class="container">
@@ -17,13 +17,24 @@
         </header>
 
         <main>
-            <div class="video-container">
-                <div id="no-data-message" class="no-data-message" style="display: none;">
-                    <div class="no-data-icon">📡</div>
-                    <h2>Нет данных</h2>
-                    <p>Ожидание видеопотока...</p>
+            <div class="video-grid">
+                <div class="video-container">
+                    <h2>Обработанный поток</h2>
+                    <div class="video-wrapper">
+                        <div id="no-data-message" class="no-data-message" style="display: none;">
+                            <div class="no-data-icon">📡</div>
+                            <h2>Нет данных</h2>
+                            <p>Ожидание видеопотока...</p>
+                        </div>
+                        <img id="video-stream" src="{{ request.url_for('video_feed') }}" alt="Processed Video">
+                    </div>
                 </div>
-                <img id="video-stream" src="{{ url_for('video_feed') }}" alt="Video Feed">
+                <div class="video-container">
+                    <h2>Сырой поток</h2>
+                    <div class="video-wrapper">
+                        <img id="raw-stream" src="{{ request.url_for('raw_video_feed') }}" alt="Raw Video">
+                    </div>
+                </div>
             </div>
 
             <div class="info-panel">
@@ -33,7 +44,7 @@
                 </div>
                 <div class="info-card">
                     <h3>Детекция</h3>
-                    <p>80 классов объектов</p>
+                    <p>cow</p>
                 </div>
                 <div class="info-card">
                     <h3>Источник</h3>
@@ -68,17 +79,14 @@
 
     <script>
         let lastFrameTime = Date.now();
-        let noDataTimeout;
-        let frameCheckInterval;
-        const NO_DATA_DELAY = 2000; // 2 секунды
-        const COUNTS_REFRESH_MS = 1000; // обновление счетчиков
+        const NO_DATA_DELAY = 2000;
+        const COUNTS_REFRESH_MS = 1000;
 
         function updateStatus(connected) {
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
             const videoImg = document.getElementById('video-stream');
             const noDataMsg = document.getElementById('no-data-message');
-            
             if (connected) {
                 lastFrameTime = Date.now();
                 statusDot.className = 'status-dot active';
@@ -95,41 +103,32 @@
 
         function checkVideoStatus() {
             const videoImg = document.getElementById('video-stream');
-            
-            // Проверяем, загружается ли изображение
             if (videoImg.complete && videoImg.naturalWidth > 0) {
                 updateStatus(true);
             } else {
-                // Если изображение еще не загрузилось, ждем
                 videoImg.onload = function() {
                     updateStatus(true);
                 };
-                
                 videoImg.onerror = function() {
                     updateStatus(false);
                 };
             }
         }
 
-        // Проверка статуса каждую секунду
-        frameCheckInterval = setInterval(function() {
+        setInterval(function() {
             const videoImg = document.getElementById('video-stream');
             const timeSinceLastFrame = Date.now() - lastFrameTime;
-            
-            // Проверяем, есть ли изображение и оно загружено
             if (videoImg.complete && videoImg.naturalWidth > 0) {
-                // Изображение загружено, обновляем время
                 lastFrameTime = Date.now();
                 updateStatus(true);
             } else if (timeSinceLastFrame >= NO_DATA_DELAY) {
-                // Прошло слишком много времени без обновления
                 updateStatus(false);
             }
         }, 1000);
 
         async function fetchCounts() {
             try {
-                const response = await fetch('/counts');
+                const response = await fetch("{{ request.url_for('get_counts') }}");
                 if (!response.ok) return;
                 const data = await response.json();
                 if (!data || !data.counts) {
@@ -145,9 +144,7 @@
         function renderCounts(counts) {
             const container = document.getElementById('counts-content');
             if (!container) return;
-
             container.innerHTML = '';
-
             const entries = Object.entries(counts);
             if (!entries.length) {
                 const empty = document.createElement('p');
@@ -156,43 +153,33 @@
                 container.appendChild(empty);
                 return;
             }
-
             const list = document.createElement('ul');
             list.className = 'counts-list';
             list.id = 'counts-list';
-
             entries.forEach(([name, value]) => {
                 const item = document.createElement('li');
-
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'count-name';
                 nameSpan.textContent = name;
-
                 const valueSpan = document.createElement('span');
                 valueSpan.className = 'count-value';
                 valueSpan.textContent = value;
-
                 item.appendChild(nameSpan);
                 item.appendChild(valueSpan);
                 list.appendChild(item);
             });
-
             container.appendChild(list);
         }
 
-        // Функция для получения уведомлений о потерянных объектах
         function fetchLostNotifications() {
-            fetch('/lost_notifications')
+            fetch("{{ request.url_for('get_lost_notifications') }}")
                 .then(response => response.json())
                 .then(data => {
                     const panel = document.getElementById('notifications-panel');
                     const content = document.getElementById('notifications-content');
-                    
                     if (data && data.length > 0) {
                         panel.style.display = 'block';
                         content.innerHTML = '';
-                        
-                        // Показываем последние 10 уведомлений
                         const recent = data.slice(-10).reverse();
                         recent.forEach(notif => {
                             const div = document.createElement('div');
@@ -207,21 +194,13 @@
                 .catch(err => console.error('Ошибка получения уведомлений:', err));
         }
 
-        // Инициализация при загрузке страницы
         window.onload = function() {
-            // Начальная проверка через небольшую задержку
             setTimeout(checkVideoStatus, 500);
-            
-            // Периодическая проверка каждые 2 секунды
             setInterval(checkVideoStatus, 2000);
-
-            // Запускаем периодическое обновление счетчиков
             fetchCounts();
             setInterval(fetchCounts, COUNTS_REFRESH_MS);
-            
-            // Запускаем периодическое обновление уведомлений
             fetchLostNotifications();
-            setInterval(fetchLostNotifications, 2000);  // Каждые 2 секунды
+            setInterval(fetchLostNotifications, 2000);
         };
     </script>
 </body>
