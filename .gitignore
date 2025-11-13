@@ -9,9 +9,7 @@ __pycache__/
 # Sourse
 *.mp4
 commit.txt
-requirements.txt
 tasks.txt
-*.pt
 *:Zone.Identifier
 
 # Distribution / packaging
