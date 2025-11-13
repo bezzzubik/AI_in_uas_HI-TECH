@@ -9,14 +9,14 @@
 DEVICE = 'cpu'  # По умолчанию CPU
 
 # Настройки модели
-MODEL_NAME = 'yolov8m.pt'  # Имя стандартной YOLOv8 модели
+MODEL_NAME = 'yolov8n.pt'  # Имя стандартной YOLOv8 модели
 # Путь к пользовательским весам (если указан, будет использован вместо MODEL_NAME)
 # Пример: '/path/to/your_model.pth' или '/path/to/your_model.pt'
 # Важно: .pth должен быть совместим с Ultralytics YOLO. Иначе экспортируйте в .pt/ONNX.
 MODEL_PATH = ''
 
 # Настройки Flask сервера
-FLASK_HOST = '127.0.0.1'  # 0.0.0.0 позволяет доступ из сети
+FLASK_HOST = '0.0.0.0'  # 0.0.0.0 позволяет доступ из сети
 FLASK_PORT = 5000
 FLASK_DEBUG = False
 
